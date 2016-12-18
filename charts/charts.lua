@@ -153,6 +153,7 @@ do
 end
 
 return {
+  sides = sides,
   Container = Container,
   Histogram = Histogram
 }
