@@ -68,15 +68,20 @@ while true do
     local angle = math.random(0, 359)
     local x1 = math.floor(x + distance * math.cos(math.rad(angle)))
     local y1 = math.floor(y + distance * math.sin(math.rad(angle)))
-    if x1 < 1 then x1 = 1 end
-    if x1 > width then x1 = width end
-    if y1 < 1 then y1 = 1 end
-    if y1 > height then y1 = height end
     local points = line(x, y, x1, y1)
     if points[1][1] ~= x or points[1][2] ~= y then
       -- reverse the table
       for i = 1, math.floor(#points / 2), 1 do
         points[i], points[#points - i + 1] = points[#points - i + 1], points[i]
+      end
+    end
+    for i = 1, #points, 1 do
+      local p = points[i]
+      if p[1] < 1 or p[1] > width or p[2] < 1 or p[2] > height then
+        for j = i, #points, 1 do
+          points[j] = nil
+        end
+        break
       end
     end
     local star = {
