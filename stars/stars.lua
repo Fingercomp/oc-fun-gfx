@@ -99,7 +99,7 @@ while true do
     if not star.points[star.i] then
       table.remove(stars, i)
     end
-    star.state = 2 + math.floor(star.i / (#star.points + 1) * 5)
+    star.state = 2 + math.floor(star.i / (#star.points + 1) * 6)
   end
 
   gpu.fill(1, 1, width, height, " ")
