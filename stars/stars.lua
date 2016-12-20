@@ -64,7 +64,7 @@ local distance = math.ceil(math.max(
 ))
 
 while true do
-  for n = 1, 8, 1 do
+  for n = 1, 10, 1 do
     local angle = math.random(0, 359)
     local x1 = math.floor(x + distance * math.cos(math.rad(angle)))
     local y1 = math.floor(y + distance * math.sin(math.rad(angle)))
@@ -95,11 +95,11 @@ while true do
 
   for i = #stars, 1, -1 do
     local star = stars[i]
-    star.i = star.i + 1
+    star.state = 2 + math.floor(star.i / (#star.points + 1) * 6)
+    star.i = star.i + math.floor((star.state - 2) / 1) + 1
     if not star.points[star.i] then
       table.remove(stars, i)
     end
-    star.state = 2 + math.floor(star.i / (#star.points + 1) * 6)
   end
 
   gpu.fill(1, 1, width, height, " ")
