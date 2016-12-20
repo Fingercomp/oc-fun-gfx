@@ -148,6 +148,7 @@ while true do
       pipe.life = pipe.life - 1
     end
   end
+  i = i + 1
   if i >= clearInterval then
     if event.pull(2, "interrupted") then
       break
@@ -157,11 +158,11 @@ while true do
     gpu.fill(1, 1, width, height / 2, " ")
     i = 0
     pipes = {}
+  else
+    if event.pull(.05, "interrupted") then
+      break
+    end
   end
-  if event.pull(.05, "interrupted") then
-    break
-  end
-  i = i + 1
 end
 
 gpu.setForeground(oldFg)
