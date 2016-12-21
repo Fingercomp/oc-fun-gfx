@@ -1,3 +1,4 @@
+local event = require("event")
 local unicode = require("unicode")
 
 local gpu = require("component").gpu
@@ -95,10 +96,14 @@ while true do
 
   for i = #stars, 1, -1 do
     local star = stars[i]
-    star.state = 2 + math.floor(star.i / (#star.points + 1) * 6)
-    star.i = star.i + math.floor((star.state - 2) / 1) + 1
+    star.i = star.i + star.state - 2 + 1
     if not star.points[star.i] then
       table.remove(stars, i)
+    else
+      local sDist = math.sqrt(
+        (x - star.points[star.i][1])^2 + (y - star.points[star.i][2])^2
+      )
+      star.state = 2 + math.floor(sDist / (distance + 1) * 6)
     end
   end
 
@@ -107,7 +112,9 @@ while true do
     gpu.set(star.points[star.i][1], star.points[star.i][2], chars[star.state])
   end
 
-  os.sleep(.05)
+  if event.pull(.05, "interrupted") then
+    break
+  end
 end
 
 gpu.fill(1, 1, width, height, " ")
