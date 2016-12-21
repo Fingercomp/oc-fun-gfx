@@ -64,6 +64,14 @@ local distance = math.ceil(math.max(
   math.sqrt((width -x)^2 + (height - y)^2)
 ))
 
+local lines = {}
+for line = 1, height, 1 do
+  lines[line] = {}
+  for c = 1, width, 1 do
+    table.insert(lines[line], " ")
+  end
+end
+
 while true do
   for n = 1, 10, 1 do
     local angle = math.random(0, 359)
@@ -108,8 +116,17 @@ while true do
   end
 
   gpu.fill(1, 1, width, height, " ")
+  for _, line in pairs(lines) do
+    for k in pairs(line) do
+      line[k] = " "
+    end
+  end
   for _, star in pairs(stars) do
-    gpu.set(star.points[star.i][1], star.points[star.i][2], chars[star.state])
+    local sX, sY = table.unpack(star.points[star.i])
+    lines[sY][sX] = chars[star.state]
+  end
+  for n, line in pairs(lines) do
+    gpu.set(1, n, table.concat(line))
   end
 
   if event.pull(.05, "interrupted") then
