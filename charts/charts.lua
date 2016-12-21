@@ -84,8 +84,8 @@ do
         container.gpu.setBackground(bg)
       end
 
-      container.gpu.set(container.payloadX + bar - 1,
-                        container.payloadY,
+      container.gpu.set(container:getX() + bar - 1,
+                        container:getY(),
                         chars,
                         true)
       bar = bar + 1
@@ -132,6 +132,14 @@ do
         self.gpu.setBackground(bg)
       end
     end
+  end
+
+  function meta:getX()
+    return self.x + self.payloadX - 1
+  end
+
+  function meta:getY()
+    return self.y + self.payloadY - 1
   end
 
   Container = function()
