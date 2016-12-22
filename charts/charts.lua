@@ -22,13 +22,23 @@ do
     return math.floor(perc * height * 8)
   end
 
-  local function getBarChars(height, totalHeight)
+  local function getBarChars(height, halfHeight, totalHeight)
+    if height < 0 then
+      height = -height
+      local spaces = math.floor(height / 8)
+      local part = characters[8 - (height - spaces * 8) + 1]
+      if spaces * 8 == height then
+        part = ""
+      end
+      local blocks = totalHeight - halfHeight
+      return characters[9]:rep(blocks) .. characters[1]:rep(spaces) .. part
+    end
     local blocks = math.floor(height / 8)
     local part = characters[height - blocks * 8 + 1]
     if blocks * 8 == height then
       part = ""
     end
-    local spaces = totalHeight - blocks - (part ~= "" and 1 or 0)
+    local spaces = halfHeight - blocks - (part ~= "" and 1 or 0)
     return characters[1]:rep(spaces) .. part .. characters[9]:rep(blocks)
   end
 
@@ -58,23 +68,57 @@ do
     local max = self.max - self.min
     local min = 0
     local bar = 1
+
+    local levelY = self.level.y
+    if levelY > 0 and levelY < 1 then
+      levelY = levelY * container.height
+    elseif levelY < 0 then
+      levelY = container.height + levelY + 1
+    end
+    levelY = math.floor(levelY)
+    if levelY > container.height then
+      levelY = container.height
+    end
+
+    local levelV = self.level.value or self.min
+    if levelV < self.min or levelV > self.max then
+      error("invalid level value set!")
+    end
+
     for i = loopStart, loopEnd do
-      local value = self.values[i] or self.min
+      local value = self.values[i] or levelV
       if value < self.min or value > self.max then
         error("incorrect min/max values: min = " .. min .. ", max = " .. max .. ", v = " .. value)
       end
+      local v = value - levelV
+      local halfH = v < 0 and levelY or container.height - levelY
 
-      local perc = (value - self.min) / max
-      if value - self.min == 0 and max == 0 then
+      local perc
+      if v < 0 then
+        perc = (levelV + value) / (levelV - self.min)
+      else
+        perc = (value - levelV) / (self.max - levelV)
+      end
+      if v == 0 and max == 0 then
         perc = 1
       end
 
-      local height = calcHeight(container.height, perc)
-      local chars = getBarChars(height, container.height)
+      local height = calcHeight(halfH, perc)
+      local chars = getBarChars(height, halfH, container.height)
 
       local fg, bg = self.colorFunc(i, perc, value, self, container)
       fg = fg or container.fg
       bg = bg or container.bg
+
+      if v < 0 then
+        fg, bg = bg, fg
+      end
+
+      --[[]=]
+      print(levelV, levelY, value, v, halfH, height, perc)
+      print(("%q"):format(chars))
+      break
+      --]]
 
       if container.gpu.getForeground() ~= fg then
         container.gpu.setForeground(fg)
@@ -100,7 +144,11 @@ do
         return 0xffffff
       end,
       min = 0,
-      max = 1
+      max = 1,
+      level = {
+        y = 0,
+        value = nil
+      }
     }
     return setmetatable(obj, meta)
   end
