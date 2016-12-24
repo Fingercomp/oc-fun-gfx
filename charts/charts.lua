@@ -114,12 +114,6 @@ do
         fg, bg = bg, fg
       end
 
-      --[[]=]
-      print(levelV, levelY, value, v, halfH, height, perc)
-      print(("%q"):format(chars))
-      break
-      --]]
-
       if container.gpu.getForeground() ~= fg then
         container.gpu.setForeground(fg)
       end
