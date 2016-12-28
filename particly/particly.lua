@@ -3,21 +3,32 @@ local event = require("event")
 
 local p = com.particle
 
-local image = [[
-####...###....#...#####
-....#.#...#...#.......#
-.###..#...#...#......#.
-#.....#...#...#.....#..
-#####..###....#....#...
-]]
+local function spawn(pname, x, y, z, pvx, pvy, pvz)
+  if type(pvx) == "number" then
+    if type(pvy) == "number" and type(pvz) == "number" then
+      return p.spawn(pname, x, y, z, pvx, pvy, pvz)
+    else
+      return p.spawn(pname, x, y, z, pvx)
+    end
+  else
+    return p.spawn(pname, x, y, z)
+  end
+end
 
-local px, py, pz = -5, 4.8, -5
-local pname = "flame"
-local pvx, pvy, pvz = 0, 0, 0
-local step = .2
-local doubleHeight = false
+local function draw(image, pcoords, pname, pv, step, doubleHeight)
+  pcoords = pcoords or {}
+  local px, py, pz = table.unpack(pcoords)
+  px = px or 0
+  py = py or 0
+  pz = pz or 0
+  pname = pname or "flame"
+  local pvx, pvy, pvz
+  if type(pv) == "number" then
+    pvx = pv
+  elseif type(pv) == "table" then
+    pvx, pvy, pvz = table.unpack(pv)
+  end
 
-while 1 do
   local x = 0
   for line in image:gmatch("[^\n]+") do
     x = x + step * 2
@@ -26,15 +37,14 @@ while 1 do
       z = z + step
       if c == "#" then
         for i = 1, 5, 1 do
-          p.spawn(pname, x + px, py, z + pz, pvx, pvy, pvz)
+          spawn(pname, x + px, py, z + pz, pvx, pvy, pvz)
           if doubleHeight then
-            p.spawn(pname, x + px + step, py, z + pz, pvx, pvy, pvz)
+            spawn(pname, x + px + step, py, z + pz, pvx, pvy, pvz)
           end
         end
       end
     end
   end
-  if event.pull(.05, "interrupted") then
-    break
-  end
 end
+
+return draw
