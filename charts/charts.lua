@@ -88,7 +88,7 @@ do
     for i = loopStart, loopEnd do
       local value = self.values[i] or levelV
       if value < self.min or value > self.max then
-        error("incorrect min/max values: min = " .. min .. ", max = " .. max .. ", v = " .. value)
+        error("incorrect min/max values: min = " .. self.min .. ", max = " .. self.max .. ", v = " .. value)
       end
       local v = value - levelV
       local halfH = v < 0 and levelY or container.height - levelY
@@ -143,6 +143,106 @@ do
         y = 0,
         value = nil
       }
+    }
+    return setmetatable(obj, meta)
+  end
+end
+
+local ProgressBar
+do
+  local meta = {}
+  meta.__index = meta
+  local charsV = {" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
+  local charsH = {" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"}
+
+  local function calcLength(perc, max)
+    return math.floor(perc * 8 * max), max * 8
+  end
+
+  local function getChars(direction, len, max)
+    if direction == sides.RIGHT then
+      local blocks = math.floor(len / 8)
+      local part = charsH[len - blocks * 8 + 1]
+      if blocks * 8 == len then
+        part = ""
+      end
+      local spaces = max / 8 - blocks - (part ~= "" and 1 or 0)
+      return charsH[9]:rep(blocks) .. part .. charsH[1]:rep(spaces)
+    elseif direction == sides.LEFT then
+      local spaces = math.floor(len / 8)
+      local part = charsH[9 - (len - spaces * 8)]
+      if spaces * 8 == len then
+        part = ""
+      end
+      local blocks = max / 8 - spaces - (part ~= "" and 1 or 0)
+      return charsH[9]:rep(blocks) .. part .. charsH[1]:rep(spaces)
+    elseif direction == sides.TOP then
+      local blocks = math.floor(len / 8)
+      local part = charsV[len - blocks * 8 + 1]
+      if blocks * 8 == len then
+        part = ""
+      end
+      local spaces = max / 8 - blocks - (part ~= "" and 1 or 0)
+      return charsV[1]:rep(spaces) .. part .. charsV[9]:rep(blocks)
+    elseif direction == sides.BOTTOM then
+      local spaces = math.floor(len / 8)
+      local part = charsV[9 - (len - spaces * 8)]
+      if spaces * 8 == len then
+        part = ""
+      end
+      local blocks = max / 8 - spaces - (part ~= "" and 1 or 0)
+      return charsV[1]:rep(spaces) .. part .. charsV[9]:rep(blocks)
+    end
+  end
+
+  function meta:draw(container)
+    local min = 0
+    local max = self.max - self.min
+    if min == max and min == 0 then
+      error("min and max values are the same")
+    end
+    local value = self.value - self.min
+    if not (value >= min and value <= max) then
+      error("incorrect min/max values: min = " .. self.min .. ", max = " .. self.max .. ", v = " .. self.value)
+    end
+    local perc = value / max
+    local maxLength = container.width
+    if self.direction == sides.TOP or self.direction == sides.BOTTOM then
+      maxLength = container.height
+    end
+    local chars = getChars(self.direction, calcLength(perc, maxLength))
+    local fg, bg = self.colorFunc(self.value, perc, self.max, self, container)
+    fg = fg or container.fg
+    bg = bg or container.bg
+    if self.direction == sides.LEFT or self.direction == sides.BOTTOM then
+      fg, bg = bg, fg
+    end
+    if container.gpu.getForeground() ~= fg then
+      container.gpu.setForeground(fg)
+    end
+    if container.gpu.getBackground() ~= bg then
+      container.gpu.setBackground(bg)
+    end
+    if self.direction == sides.TOP or self.direction == sides.BOTTOM then
+      for x = 1, container.width, 1 do
+        container.gpu.set(container:getX() + x - 1, container:getY(), chars, true)
+      end
+    else
+      for y = 1, container.height, 1 do
+        container.gpu.set(container:getX(), container:getY() + y - 1, chars)
+      end
+    end
+  end
+
+  ProgressBar = function()
+    local obj = {
+      direction = sides.RIGHT,
+      min = 0,
+      max = 1,
+      value = 0,
+      colorFunc = function(value, perc, max, prbar, container)
+        return container.fg, container.bg
+      end
     }
     return setmetatable(obj, meta)
   end
@@ -205,5 +305,6 @@ end
 return {
   sides = sides,
   Container = Container,
-  Histogram = Histogram
+  Histogram = Histogram,
+  ProgressBar = ProgressBar
 }
