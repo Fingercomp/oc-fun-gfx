@@ -211,7 +211,7 @@ do
       maxLength = container.height
     end
     local chars = getChars(self.direction, calcLength(perc, maxLength))
-    local fg, bg = self.colorFunc(self.value, perc, self.max, self, container)
+    local fg, bg = self.colorFunc(self.value, perc, self, container)
     fg = fg or container.fg
     bg = bg or container.bg
     if self.direction == sides.LEFT or self.direction == sides.BOTTOM then
@@ -240,7 +240,7 @@ do
       min = 0,
       max = 1,
       value = 0,
-      colorFunc = function(value, perc, max, prbar, container)
+      colorFunc = function(value, perc, prbar, container)
         return container.fg, container.bg
       end
     }
