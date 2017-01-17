@@ -1,3 +1,4 @@
+local bit32 = require("bit32")
 local component = require("component")
 
 local sides = {
@@ -245,6 +246,61 @@ do
       end
     }
     return setmetatable(obj, meta)
+  end
+end
+
+local Line
+do
+  local meta = {}
+  meta.__index = meta
+
+  local dots = {1, 2, 4, 64, 8, 16, 32, 128}
+
+  local function newBoard(w, h)
+    local board = {}
+    for i = 0, w * h - 1, 1 do
+      board[i] = 0
+    end
+    board.w = w
+    board.h = h
+    return board
+  end
+
+  local function getPixel(board, x, y)
+    local lx = math.floor((x + 1) / 2) - 1
+    local ly = math.floor((x + 3) / 4) - 1
+    local cell = board[ly * board.w + lx]
+
+    local bx = x - lx * 2 - 1
+    local by = y - ly * 2
+    return bit32.band(cell, dots[bx * 5 + by])
+  end
+
+  local function setPixel(board, x, y, v)
+    local lx = math.floor((x + 1) / 2) - 1
+    local ly = math.floor((x + 3) / 4) - 1
+    local cell = board[ly * board.w + lx]
+
+    local bx = x - lx * 2 - 1
+    local by = y - ly * 2
+    local n = dots[bx * 5 + by]
+    if bit32.band(cell, n) == 0 and v then
+      cell = cell + n
+    elseif bit32.band(cell, n) == n and not v then
+      cell = cell - n
+    end
+    board[ly * board.w + lx] = cell
+  end
+
+  function meta:draw(container)
+    local board = newBoard(container:getX(), container:getY())
+  end
+
+  Line = function()
+     local obj = {
+       points = {}
+     }
+     return setmetatable(obj, meta)
   end
 end
 
