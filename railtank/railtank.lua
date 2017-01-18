@@ -1,25 +1,131 @@
 local com = require("component")
 local event = require("event")
+local fs = require("filesystem")
 local term = require("term")
 
 local charts = require("charts")
 
 local gpu = com.gpu
 
-local colors = {
+
+do
+  if not fs.exists("/etc/railtank.cfg") then
+    local file = io.open("/etc/railtank.cfg", "w")
+    file:write([[
+-- Fluid colors
+-- ["fluid id"] = color
+colors = {
   ["water"] = 0x20afff,
   ["lava"] = 0xff2020,
   ["creosote"] = 0xcfaf20,
   ["seedoil"] = 0xffdf20,
-  0xffffff
 }
 
-local histUpdateInterval = 5
-local tankAmount = 4
-local bg = 0xe1e1e1
-local fg = 0x2d2d2d
-local graphBG = 0xffffff
+-- Default color
+colors[1] = 0x808080
 
+-- Graph update interval
+histUpdateInterval = 5
+
+-- How many tanks to monitor.
+-- To support more than 3 tanks, you'll need a T3 screen and GPU.
+tankAmount = 4
+
+-- The background color
+bg = 0xe1e1e1
+
+-- The text color
+fg = 0x2d2d2d
+
+-- The background color of graphs
+graphBG = 0xffffff
+]])
+    file:close()
+  end
+end
+
+local function loadConfig()
+  local base = {}
+
+  local default = {
+    colors = {
+      ["water"] = 0x20afff,
+      ["lava"] = 0xff2020,
+      ["creosote"] = 0xcfaf20,
+      ["seedoil"] = 0xffdf20,
+      0xffffff
+    },
+    histUpdateInterval = 5,
+    tankAmount = 4,
+    bg = 0xe1e1e1,
+    fg = 0x2d2d2d,
+    graphBG = 0xffffff
+  }
+
+  local config = {}
+
+  local function deepCopy(value)
+    if type(value) ~= "table" then
+      return value
+    end
+    local result = {}
+    for k, v in pairs(value) do
+      result[k] = deepCopy(v)
+    end
+    return result
+  end
+
+  local function createEnv(base, default, config)
+    return setmetatable({}, {
+      __newindex = function(self, k, v)
+        if base[k] then
+          return nil
+        end
+        if default[k] then
+          config[k] = v
+        end
+        return nil
+      end,
+      __index = function(self, k)
+        if base[k] then
+          config[k] = config[k] or {}
+          return createEnv({}, default[k], config[k])
+        end
+        if default[k] then
+          return config[k] or deepCopy(default[k])
+        end
+      end
+    })
+  end
+
+  local env = createEnv(base, default, config)
+  loadfile("/etc/railtank.cfg", "t", env)()
+
+  local function setGet(base, default, config)
+    return setmetatable({}, {
+      __index = function(self, k)
+        if base[k] then
+          config[k] = config[k] or {}
+          return setGet(base[k], default[k], config[k])
+        elseif config[k] then
+          return config[k]
+        elseif default[k] then
+          return default[k]
+        end
+      end
+    })
+  end
+
+  return setGet(base, default, config)
+end
+
+local cfg = loadConfig()
+local colors = cfg.colors
+local histUpdateInterval = cfg.histUpdateInterval
+local tankAmount = cfg.tankAmount
+local bg = cfg.bg
+local fg = cfg.fg
+local graphBG = cfg.graphBG
 
 tankAmount = math.min(math.floor((gpu.maxResolution() - 5) / 25), tankAmount)
 local oldW, oldH = gpu.getResolution()
@@ -56,7 +162,7 @@ local function newTank(pos)
   tank.hist.container.height = 9
   tank.hist.container.fg = colors[1]
   tank.hist.container.bg = graphBG
-  
+
   tank.hist.payload = charts.Histogram()
   tank.hist.payload.align = charts.sides.RIGHT
   tank.hist.payload.min = 0
@@ -65,6 +171,15 @@ local function newTank(pos)
   end
 
   tank.hist.container.payload = tank.hist.payload
+end
+
+local function center(str, len)
+  if #str >= len then
+    return str
+  end
+  local lhw = math.floor(len / 2)
+  local shw = math.floor(#str / 2)
+  return ("%-" .. len .. "s"):format(("%" .. (#str + (lhw - shw)) .. "s"):format(str))
 end
 
 local oldBG = gpu.setBackground(bg)
@@ -133,20 +248,20 @@ while true do
         tank.bar.payload.max = data[1].capacity
         tank.bar.payload.value = data[1].amount
 
-        gpu.set(tank.x, 2, data[1].amount .. "mB")
-        gpu.set(tank.x, 3, data[1].capacity .. "mB")
-        gpu.set(tank.x, 4, ("%6.2f"):format(100 * data[1].amount / data[1].capacity) .. "%")
+        gpu.set(tank.x, 3, center(data[1].amount .. "mB", 20))
+        gpu.set(tank.x, 4, center(data[1].capacity .. "mB", 20))
+        gpu.set(tank.x, 5, center(("%6.2f"):format(100 * data[1].amount / data[1].capacity) .. "%", 20))
         if data[1].label then
           tank.bar.container.fg = colors[data[1].name] or colors[1]
           if tank.hist.container.fg ~= tank.bar.container.fg then
             tank.hist.payload.values = {}
           end
           tank.hist.container.fg = tank.bar.container.fg
-          gpu.set(tank.x, 1, data[1].label)
+          gpu.set(tank.x, 2, center(data[1].label, 20))
         else
           tank.bar.container.fg = colors[1]
           tank.hist.container.fg = colors[1]
-          gpu.set(tank.x, 1, "Empty")
+          gpu.set(tank.x, 2, center("Empty", 20))
         end
       end
       tank.hist.container:draw()
