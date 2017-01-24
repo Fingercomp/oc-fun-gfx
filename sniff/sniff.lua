@@ -1,4 +1,3 @@
-require("component").gpu.setResolution(80,25)
 local com = require("component")
 local event = require("event")
 local term = require("term")
@@ -10,6 +9,8 @@ local gpu = com.gpu
 local oldW, oldH = gpu.getResolution()
 local oldFG = gpu.getForeground()
 local oldBG = gpu.getBackground()
+
+gpu.setResolution(80, 25)
 
 forms.ignoreAll()
 local elements = {}
