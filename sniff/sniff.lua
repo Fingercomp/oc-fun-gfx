@@ -42,7 +42,7 @@ local function updateMsgData()
     elements.chunkList:insert("#" .. tostring(i - 4), self.items[self.index][i])
   end
   if self.items[self.index][5] then
-    elements.data.text = self.items[self.index][5]
+    elements.data:setTextHex(self.items[self.index][5])
   end
   main:redraw()
 end
@@ -91,11 +91,19 @@ data.H = 10
 data.fontColor = 0x00000
 data.color = 0xCCCCCC
 data.W = 72
+function data:setTextHex(bytes)
+  local text = {}
+  for i = 1, #bytes, 8 do
+    local sub = bytes:sub(i, i + 7)
+    table.insert(text, ("%-20s"):format(sub:gsub(".", function(c) return ("%02X"):format(c:byte()) end):gsub("^........", "%1 ")) .. sub:gsub(".", function(c) return " " .. c end):gsub("[^\x20-\x7e]", "᛫"))
+  end
+  self.text = text
+end
 elements.data = data
 
 local chunkList = msgInfo:addList(74,6,function()
   local self = elements.chunkList
-  elements.data.text = self.items[self.index]
+  elements.data:setTextHex(self.items[self.index])
   main:redraw()
 end)
 chunkList.sfColor = 0
