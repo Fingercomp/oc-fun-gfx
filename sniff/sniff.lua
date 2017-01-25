@@ -46,7 +46,7 @@ local function updateMsgData()
     elements.data:setTextHex(self.items[self.index][6])
   end
   elements.chunkCount.caption = ("%3d"):format(#self.items[self.index] - 5)
-  main:redraw()
+  elements.msgInfo:redraw()
 end
 
 local function update()
@@ -54,7 +54,7 @@ local function update()
     elements.msgInfo:show()
     updateMsgData()
   else
-    main:redraw()
+    elements.msgInfo:redraw()
   end
 end
 
@@ -122,14 +122,14 @@ function data:setTextHex(bytes)
       return "  " .. c
     end):gsub("[^\x20-\x7e]", "᛫"):gsub("^............", "%1  "), nil)
   end
-  elements.main:redraw()
+  elements.msgInfo:redraw()
 end
 elements.data = data
 
 local chunkList = msgInfo:addList(75,1,function()
   local self = elements.chunkList
   elements.data:setTextHex(self.items[self.index])
-  main:redraw()
+  elements.msgInfo:redraw()
 end)
 chunkList.sfColor = 0
 chunkList.H = 14
@@ -162,32 +162,42 @@ event.listen("modem_message", modemListener)
 
 local invoke = com.invoke
 com.invoke = function(address, method, ...)
-  if com.type(address) == "modem" then
+  local comType = com.type(address)
+  if method == "send" and comType == "modem" then
+    local result = {invoke(address, "send", ...)}
     local modem = com.proxy(address)
-    if method == "send" then
-      local result = {invoke(address, "send", ...)}
-      local args = {...}
-      local addr = table.remove(args, 1)
-      local port = table.remove(args, 1)
-      local distance = modem.isWireless() and modem.getStrength() or 0
-      elements.msgList:insert(
-        ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
-        " " .. modem.address:sub(1, 8) .. "… → " .. addr:sub(1, 8) .. "…"),
-        {comp.uptime(), addr, modem.address, port, distance, table.unpack(args)})
-        update()
-      return table.unpack(result)
-    elseif method == "broadcast" then
-      local result = {invoke(address, "broadcast", ...)}
-      local args = {...}
-      local port = table.remove(args, 1)
-      local distance = modem.isWireless() and modem.getStrength() or 0
-      elements.msgList:insert(
-        ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
-        " " .. modem.address:sub(1, 8) .. "… → BROADCAST"),
-        {comp.uptime(), "BROADCAST", modem.address, port, distance, table.unpack(args)})
-        update()
-      return table.unpack(result)
+    local args = {...}
+    local addr = table.remove(args, 1)
+    local port = table.remove(args, 1)
+    local distance = 0
+    if modem.isWireless() then
+      distance = modem.getStrength()
     end
+    elements.msgList:insert(
+      ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
+      " " .. modem.address:sub(1, 8) .. "… → " .. addr:sub(1, 8) .. "…"),
+      {comp.uptime(), addr, modem.address, port, distance, table.unpack(args)})
+      update()
+    return table.unpack(result)
+  elseif method == "send" and comType == "tunnel" then
+    local result = {invoke(address, "send", ...)}
+    elements.msgList:insert(
+      ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(0) ..
+      " " .. address:sub(1, 8) .. "… → " .. "LINKED"),
+      {comp.uptime(), "LINKED", address, 0, 0, ...})
+      update()
+  elseif method == "broadcast" and comType == "modem" then
+    local result = {invoke(address, "broadcast", ...)}
+    local modem = com.proxy(address)
+    local args = {...}
+    local port = table.remove(args, 1)
+    local distance = modem.isWireless() and modem.getStrength() or 0
+    elements.msgList:insert(
+      ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
+      " " .. modem.address:sub(1, 8) .. "… → BROADCAST"),
+      {comp.uptime(), "BROADCAST", modem.address, port, distance, table.unpack(args)})
+      update()
+    return table.unpack(result)
   end
   return invoke(address, method, ...)
 end
