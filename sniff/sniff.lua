@@ -33,19 +33,31 @@ elements.appName = appName
 
 local function updateMsgData()
   local self = elements.msgList
-  elements.recvAddr.caption = "RECEIVER: " .. self.items[self.index][1]
-  elements.sendAddr.caption =  "SENDER:   " .. self.items[self.index][2]
-  elements.distance.caption =  "DISTANCE: " .. self.items[self.index][4]
-  elements.port.caption =      "PORT:     " .. self.items[self.index][3]
+  elements.msgTime.caption =     "TIME:     " .. self.items[self.index][1]
+  elements.recvAddr.caption = "RECEIVER: " .. self.items[self.index][2]
+  elements.sendAddr.caption = "SENDER:   " .. self.items[self.index][3]
+  elements.port.caption =     "PORT:     " .. self.items[self.index][4]
+  elements.distance.caption = "DISTANCE: " .. self.items[self.index][5]
   elements.chunkList:clear()
-  for i = 5, #self.items[self.index], 1 do
-    elements.chunkList:insert("#" .. tostring(i - 4), self.items[self.index][i])
+  for i = 6, #self.items[self.index], 1 do
+    elements.chunkList:insert("#" .. tostring(i - 5), self.items[self.index][i])
   end
-  if self.items[self.index][5] then
-    elements.data:setTextHex(self.items[self.index][5])
+  if self.items[self.index][6] then
+    elements.data:setTextHex(self.items[self.index][6])
   end
+  elements.chunkCount.caption = ("%3d"):format(#self.items[self.index] - 5)
   main:redraw()
 end
+
+local function update()
+  if not elements.msgInfo.visible then
+    elements.msgInfo:show()
+    updateMsgData()
+  else
+    main:redraw()
+  end
+end
+
 local msgList = main:addList(1,2,updateMsgData)
 msgList.sfColor = 0x000000
 msgList.selColor = 0xFFFFFF
@@ -62,66 +74,84 @@ msgInfo.W = 80
 msgInfo:hide()
 elements.msgInfo = msgInfo
 
+local msgTime = msgInfo:addLabel(3,1,"TIME: ")
+msgTime.fontColor = 0x000000
+msgTime.color = 0xCCCCCC
+msgTime.W = 7
+elements.msgTime = msgTime
+
 local recvAddr = msgInfo:addLabel(3,2,"RECEIVER: ")
-recvAddr.fontColor = 0x00000
+recvAddr.fontColor = 0x000000
 recvAddr.color = 0xCCCCCC
 recvAddr.W = 7
 elements.recvAddr = recvAddr
 
 local sendAddr = msgInfo:addLabel(3,3,"SENDER: ")
-sendAddr.fontColor = 0x00000
+sendAddr.fontColor = 0x000000
 sendAddr.color = 0xCCCCCC
 sendAddr.W = 7
 elements.sendAddr = sendAddr
 
 local distance = msgInfo:addLabel(3,4,"DISTANCE: ")
-distance.fontColor = 0x00000
+distance.fontColor = 0x000000
 distance.color = 0xCCCCCC
 distance.W = 10
 elements.distance = distance
 
 local port = msgInfo:addLabel(3,5,"PORT: ")
-port.fontColor = 0x00000
+port.fontColor = 0x000000
 port.color = 0xCCCCCC
 port.W = 6
 elements.port = port
 
-local data = msgInfo:addEdit(3,6)
+local data = msgInfo:addList(3,6,function()end)
 data.H = 10
-data.fontColor = 0x00000
+data.border = 1
+data.sfColor = 0x000000
+data.selColor = 0xFFFFFF
+data.fontColor = 0x000000
 data.color = 0xCCCCCC
 data.W = 72
 function data:setTextHex(bytes)
-  local text = {}
+  self:clear()
   for i = 1, #bytes, 8 do
     local sub = bytes:sub(i, i + 7)
-    table.insert(text, ("%-20s"):format(sub:gsub(".", function(c) return ("%02X"):format(c:byte()) end):gsub("^........", "%1 ")) .. sub:gsub(".", function(c) return " " .. c end):gsub("[^\x20-\x7e]", "᛫"))
+    self:insert(("%-33s"):format(sub:gsub(".", function(c)
+      return ("%02X"):format(c:byte()) .. " "
+    end):gsub("^............", "%1  ")) .. sub:gsub(".", function(c)
+      return "  " .. c
+    end):gsub("[^\x20-\x7e]", "᛫"):gsub("^............", "%1  "), nil)
   end
-  self.text = text
+  elements.main:redraw()
 end
 elements.data = data
 
-local chunkList = msgInfo:addList(74,6,function()
+local chunkList = msgInfo:addList(75,1,function()
   local self = elements.chunkList
   elements.data:setTextHex(self.items[self.index])
   main:redraw()
 end)
 chunkList.sfColor = 0
-chunkList.H = 10
+chunkList.H = 14
 chunkList.selColor = 0xFFFFFF
-chunkList.fontColor = 0x00000
+chunkList.fontColor = 0x000000
 chunkList.border = 1
 chunkList.color = 0xCCCCCC
-chunkList.W = 7
+chunkList.W = 5
 elements.chunkList = chunkList
+
+local chunkCount = msgInfo:addLabel(76, 15, "  0")
+chunkCount.fontColor = 0x000000
+chunkCount.color = 0xCCCCCC
+chunkCount.W = 5
+elements.chunkCount = chunkCount
 
 local function modemListener(name, recv, send, port, dist, ...)
   elements.msgList:insert(
     ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
     " " .. send:sub(1,8) .. "… → " .. recv:sub(1,8) .. "…"),
-     {recv, send, port, dist, ...})
-  msgInfo:show()
-  updateMsgData()
+     {comp.uptime(), recv, send, port, dist, ...})
+  update()
 end
 
 local quitListener = main:addEvent("interrupted", function()
@@ -143,9 +173,8 @@ com.invoke = function(address, method, ...)
       elements.msgList:insert(
         ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
         " " .. modem.address:sub(1, 8) .. "… → " .. addr:sub(1, 8) .. "…"),
-        {addr, modem.address, port, distance, table.unpack(args)})
-      msgInfo:show()
-      updateMsgData()
+        {comp.uptime(), addr, modem.address, port, distance, table.unpack(args)})
+        update()
       return table.unpack(result)
     elseif method == "broadcast" then
       local result = {invoke(address, "broadcast", ...)}
@@ -155,9 +184,8 @@ com.invoke = function(address, method, ...)
       elements.msgList:insert(
         ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
         " " .. modem.address:sub(1, 8) .. "… → BROADCAST"),
-        {"BROADCAST", modem.address, port, distance, table.unpack(args)})
-      msgInfo:show()
-      updateMsgData()
+        {comp.uptime(), "BROADCAST", modem.address, port, distance, table.unpack(args)})
+        update()
       return table.unpack(result)
     end
   end
