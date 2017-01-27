@@ -19,14 +19,14 @@ local main = forms.addForm()
 main.color = 0x333333
 elements.main = main
 
-local topFrame = main:addFrame(1,1,0)
+local topFrame = main:addFrame(1, 1, 0)
 topFrame.W = 80
 topFrame.H = 1
 topFrame.color = 0xCCCCCC
 topFrame.fontColor = 0
 elements.topFrame = topFrame
 
-local appName = topFrame:addLabel(3,1,"NETWORK SNIFFER")
+local appName = topFrame:addLabel(3, 1, "NETWORK SNIFFER")
 appName.color = 0xCCCCCC
 appName.fontColor = 0
 elements.appName = appName
@@ -58,7 +58,7 @@ local function update()
   end
 end
 
-local msgList = main:addList(1,2,updateMsgData)
+local msgList = main:addList(1, 2, updateMsgData)
 msgList.sfColor = 0x000000
 msgList.selColor = 0xFFFFFF
 msgList.color = 0x333333
@@ -67,44 +67,44 @@ msgList.W = 80
 msgList.H = 9
 elements.msgList = msgList
 
-local msgInfo = main:addFrame(1,11,0)
+local msgInfo = main:addFrame(1, 11, 0)
 msgInfo.H = 15
 msgInfo.color = 0xCCCCCC
 msgInfo.W = 80
 msgInfo:hide()
 elements.msgInfo = msgInfo
 
-local msgTime = msgInfo:addLabel(3,1,"TIME: ")
+local msgTime = msgInfo:addLabel(3, 1, "TIME: ")
 msgTime.fontColor = 0x000000
 msgTime.color = 0xCCCCCC
 msgTime.W = 7
 elements.msgTime = msgTime
 
-local recvAddr = msgInfo:addLabel(3,2,"RECEIVER: ")
+local recvAddr = msgInfo:addLabel(3, 2, "RECEIVER: ")
 recvAddr.fontColor = 0x000000
 recvAddr.color = 0xCCCCCC
 recvAddr.W = 7
 elements.recvAddr = recvAddr
 
-local sendAddr = msgInfo:addLabel(3,3,"SENDER: ")
+local sendAddr = msgInfo:addLabel(3, 3, "SENDER: ")
 sendAddr.fontColor = 0x000000
 sendAddr.color = 0xCCCCCC
 sendAddr.W = 7
 elements.sendAddr = sendAddr
 
-local distance = msgInfo:addLabel(3,4,"DISTANCE: ")
+local distance = msgInfo:addLabel(3, 4, "DISTANCE: ")
 distance.fontColor = 0x000000
 distance.color = 0xCCCCCC
 distance.W = 10
 elements.distance = distance
 
-local port = msgInfo:addLabel(3,5,"PORT: ")
+local port = msgInfo:addLabel(3, 5, "PORT: ")
 port.fontColor = 0x000000
 port.color = 0xCCCCCC
 port.W = 6
 elements.port = port
 
-local data = msgInfo:addList(3,6,function()end)
+local data = msgInfo:addList(3, 6, function() end)
 data.H = 10
 data.border = 1
 data.sfColor = 0x000000
@@ -126,7 +126,7 @@ function data:setTextHex(bytes)
 end
 elements.data = data
 
-local chunkList = msgInfo:addList(75,1,function()
+local chunkList = msgInfo:addList(75, 1, function()
   local self = elements.chunkList
   elements.data:setTextHex(self.items[self.index])
   elements.msgInfo:redraw()
@@ -149,7 +149,7 @@ elements.chunkCount = chunkCount
 local function modemListener(name, recv, send, port, dist, ...)
   elements.msgList:insert(
     ("[" .. ("%10.2f"):format(comp.uptime()) .. "] #" .. ("%5d"):format(port) ..
-    " " .. send:sub(1,8) .. "… → " .. recv:sub(1,8) .. "…"),
+    " " .. send:sub(1, 8) .. "… → " .. recv:sub(1, 8) .. "…"),
      {comp.uptime(), recv, send, port, dist, ...})
   update()
 end
