@@ -135,9 +135,7 @@ do
     local obj = {
       values = {},
       align = sides.LEFT,
-      colorFunc = function()
-        return 0xffffff
-      end,
+      colorFunc = function() end,
       min = 0,
       max = 1,
       level = {
